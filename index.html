@@ -10,18 +10,20 @@
     <style>
         .mission-card { transition: all 0.3s ease; cursor: pointer; }
         .mission-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .badge-active { border: 2px solid #3b82f6; background: #eff6ff; }
-        .completed-glow { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); border-color: #22c55e !important; }
+        .badge-locked { filter: grayscale(1); opacity: 0.5; }
         .nav-button:active { transform: scale(0.9); }
+        .completed-glow { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); border-color: #22c55e !important; }
+        .special-event { border-color: #ef4444 !important; background: linear-gradient(to bottom right, #fff, #fef2f2); }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans text-gray-900 pb-32">
 
+    <!-- Header -->
     <header class="bg-blue-700 text-white p-6 shadow-lg sticky top-0 z-50">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-black italic tracking-tighter uppercase leading-none">Sunrise Hero</h1>
-                <p class="text-[10px] opacity-80 uppercase tracking-widest mt-1">Status: Day 1 - March 16</p>
+                <p class="text-[10px] opacity-80 uppercase tracking-widest mt-1">Target: May 9 Cut-off 2:15:00</p>
             </div>
             <div class="text-right">
                 <span id="currentWeightDisplay" class="text-3xl font-black leading-none">105.0</span>
@@ -32,66 +34,91 @@
 
     <main class="max-w-4xl mx-auto p-4 space-y-6">
         
+        <!-- Mission Navigation -->
         <section class="space-y-4">
             <div class="flex items-center justify-between px-2">
-                <h2 class="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Current Mission</h2>
-                <span class="text-blue-600 font-bold italic">Mon, Mar 16</span>
+                <h2 class="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Daily Briefing</h2>
+                <span id="dateDisplay" class="text-blue-600 font-bold italic"></span>
+            </div>
+
+            <!-- Yesterday Preview -->
+            <div id="yesterdayPreview" onclick="changeDay(-1)" class="mission-card bg-gray-100 p-3 rounded-2xl border-l-4 border-gray-300 opacity-60 scale-95 origin-bottom">
+                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Yesterday</p>
+                <div class="flex justify-between items-center">
+                    <p id="yesterdayTask" class="text-sm font-bold text-gray-600">Loading...</p>
+                    <span id="yesterdayStatusIcon"></span>
+                </div>
             </div>
 
             <!-- MAIN MISSION -->
             <div id="mainMissionBox" class="bg-white rounded-3xl p-6 shadow-2xl border-4 border-blue-100 relative overflow-hidden transition-all duration-500">
-                <div id="missionContent" class="space-y-4">
-                    <div>
-                        <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Target</p>
-                        <p class="text-2xl font-black text-gray-800 leading-tight">🛡️ Recovery & Stretch</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 pt-2">
-                        <div class="bg-green-50/50 p-4 rounded-2xl border border-green-100">
-                            <p class="text-[8px] font-black text-green-500 uppercase mb-1">Meal 1 (12:00)</p>
-                            <p class="text-xs font-bold text-gray-700">Avocado Toast + 2 Eggs</p>
-                        </div>
-                        <div class="bg-green-50/50 p-4 rounded-2xl border border-green-100">
-                            <p class="text-[8px] font-black text-green-500 uppercase mb-1">Meal 2 (19:30)</p>
-                            <p class="text-xs font-bold text-gray-700">Tofu Tomato + Greens</p>
-                        </div>
-                    </div>
+                <div class="absolute top-0 right-0 p-4 opacity-10" id="missionIcon">
+                    <i class="fa-solid fa-person-running text-6xl text-blue-600"></i>
                 </div>
+                <div id="missionContent" class="space-y-4"></div>
                 
                 <div class="mt-6 pt-4 border-t border-gray-100">
-                    <button id="completeBtn" onclick="toggleMissionComplete()" class="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-blue-100 text-blue-600">
+                    <button id="completeBtn" onclick="toggleMissionComplete()" class="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all duration-300 flex items-center justify-center gap-2">
                         <i id="completeBtnIcon" class="fa-solid fa-circle-check"></i>
-                        <span id="completeBtnText">Log Completion</span>
+                        <span id="completeBtnText">Complete Mission</span>
                     </button>
                 </div>
+            </div>
+
+            <!-- Tomorrow Preview -->
+            <div id="tomorrowPreview" onclick="changeDay(1)" class="mission-card bg-blue-50 p-3 rounded-2xl border-l-4 border-blue-300 opacity-80 scale-95 origin-top">
+                <p class="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Tomorrow</p>
+                <p id="tomorrowTask" class="text-sm font-bold text-blue-600">Loading...</p>
+            </div>
+        </section>
+
+        <!-- Badges -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div id="badge-weight" class="bg-white p-4 rounded-2xl shadow-sm text-center border border-gray-100">
+                <i class="fa-solid fa-weight-scale text-2xl text-blue-500 mb-1"></i>
+                <p class="text-[9px] font-black uppercase">Weight Slayer</p>
+            </div>
+            <div id="badge-event" class="bg-white p-4 rounded-2xl shadow-sm text-center badge-locked border border-gray-100">
+                <i class="fa-solid fa-trophy text-2xl text-red-500 mb-1"></i>
+                <p class="text-[9px] font-black uppercase">5K Medalist</p>
+            </div>
+            <div id="badge-gout" class="bg-white p-4 rounded-2xl shadow-sm text-center badge-locked border border-gray-100">
+                <i class="fa-solid fa-droplet text-2xl text-cyan-500 mb-1"></i>
+                <p class="text-[9px] font-black uppercase">Gout Shield</p>
+            </div>
+            <div id="badge-morning" class="bg-white p-4 rounded-2xl shadow-sm text-center badge-locked border border-gray-100">
+                <i class="fa-solid fa-medal text-2xl text-yellow-500 mb-1"></i>
+                <p class="text-[9px] font-black uppercase">Elite Hero</p>
             </div>
         </section>
 
         <!-- Stats -->
         <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-blue-50 p-6 rounded-3xl border-2 border-blue-100">
-                <h3 class="font-black text-blue-800 text-[10px] uppercase tracking-widest mb-4"><i class="fa-solid fa-bottle-water mr-2"></i>Hydration</h3>
+                <h3 class="font-black text-blue-800 text-[10px] uppercase tracking-widest mb-4"><i class="fa-solid fa-bottle-water mr-2"></i>Hydration Log</h3>
                 <div class="grid grid-cols-5 gap-3" id="waterLog"></div>
             </div>
             <div class="bg-gray-100 p-6 rounded-3xl border-2 border-gray-200">
                 <h3 class="font-black text-gray-600 text-[10px] uppercase tracking-widest mb-4">Training Block</h3>
-                <p class="text-sm font-bold text-gray-500">WEEK 8: BASE PHASE</p>
+                <p id="trainingBlockText" class="text-sm font-bold text-gray-500 uppercase">Week 8: Base</p>
                 <div class="w-full bg-gray-200 h-2 rounded-full mt-2 overflow-hidden">
-                    <div class="bg-blue-600 h-full w-[12.5%]"></div>
+                    <div id="progressBar" class="bg-blue-600 h-full transition-all duration-1000"></div>
                 </div>
             </div>
         </section>
     </main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 z-50">
-        <div class="max-w-4xl mx-auto flex justify-center items-center px-4">
-            <button onclick="updateWeightModal()" class="bg-blue-700 text-white px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-sm nav-button">Update Weight</button>
+        <div class="max-w-4xl mx-auto flex justify-between items-center px-4">
+            <button onclick="changeDay(-1)" class="nav-button p-4 text-gray-400 bg-gray-50 rounded-full"><i class="fa-solid fa-chevron-left"></i></button>
+            <button onclick="updateWeightModal()" class="bg-blue-700 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-sm nav-button">Check-in</button>
+            <button onclick="changeDay(1)" class="nav-button p-4 text-gray-400 bg-gray-50 rounded-full"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
     </nav>
 
-    <!-- Weight Modal -->
     <div id="weightModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
         <div class="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl text-center">
-            <h2 class="text-lg font-black uppercase tracking-widest text-gray-400 mb-2">Morning Check-in</h2>
+            <h2 class="text-lg font-black uppercase tracking-widest text-gray-400 mb-2">Weight</h2>
             <input type="number" id="weightInput" step="0.1" class="w-full text-5xl font-black text-center border-b-4 border-blue-500 focus:outline-none p-4 mb-8">
             <div class="grid grid-cols-2 gap-4">
                 <button onclick="closeModal()" class="text-gray-400 font-black py-4 uppercase text-xs">Cancel</button>
@@ -101,29 +128,115 @@
     </div>
 
     <script>
-        let userState = { currentWeight: 105.0, waterBottles: 0, completed: false };
+        const startDate = new Date('2026-03-16');
+        let currentDayOffset = 0;
+        let userState = { currentWeight: 105.0, waterBottles: 0, completedDays: {}, totalCompleted: 0 };
+
+        const plan = {
+            training: [
+                { tue: "1000m Swim", wed: "5km Run", thu: "1200m Swim", sat: "15k B / 3k R", sun: "40k Cycle" },
+                { tue: "1200m Swim", wed: "5km Run", thu: "1500m Swim", sat: "20k B / 3k R", sun: "45k Cycle" },
+                { tue: "1500m Swim", wed: "6km Run", thu: "1800m Swim", sat: "CONTROLLED SIM", sun: "45k Cycle" },
+                { tue: "1500m Drill", wed: "5km Tempo", thu: "2000m Sw", sat: "20k B / 5k R", sun: "50k Cycle" },
+                { tue: "30km BIKE (Intense)", wed: "4km Easy", thu: "1500m Sw", sat: "🧳 TRAVEL/STRETCH", sun: "🏅 5KM RACE" },
+                { tue: "2000m Sw", wed: "5km Easy", thu: "2000m Sw", sat: "🏁 FULL SIMULATION", sun: "40k Cycle" },
+                { tue: "1500m Swim", wed: "4km Easy", thu: "1000m Sw", sat: "15k B / 2k R", sun: "30k Cycle" },
+                { tue: "500m Swim", wed: "REST", thu: "300m Sw", sat: "RACE DAY", sun: "REST" }
+            ],
+            meals: [
+                { m1: "Avocado Toast", m2: "Tofu Tomato" },
+                { m1: "Phở Gà", m2: "Fish + Eggs" },
+                { m1: "Gỏi Cuốn", m2: "Gỏi Gà" },
+                { m1: "Cháo Gà", m2: "Omelet Soup" },
+                { m1: "Avocado Toast", m2: "Chicken Cauliflower" },
+                { m1: "Bánh Mì Omelet", m2: "Bún Thịt Nướng" },
+                { m1: "Xôi Gấc", m2: "Lẩu Cá" }
+            ]
+        };
+
+        function init() {
+            const now = new Date();
+            currentDayOffset = Math.max(0, Math.floor((now - startDate) / (1000 * 60 * 60 * 24)));
+            loadProgress();
+            render();
+        }
+
+        function getTaskForOffset(offset) {
+            if (offset < 0) return "N/A";
+            const weekIdx = Math.floor(offset / 7);
+            const dayIdx = offset % 7;
+            const weekData = plan.training[weekIdx] || plan.training[7];
+            if(dayIdx === 1) return weekData.tue;
+            if(dayIdx === 2) return weekData.wed;
+            if(dayIdx === 3) return weekData.thu;
+            if(dayIdx === 5) return weekData.sat;
+            if(dayIdx === 6) return weekData.sun;
+            return "🛡️ Recovery/Stretch";
+        }
 
         function toggleMissionComplete() {
-            userState.completed = !userState.completed;
-            if (userState.completed) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            const isDone = userState.completedDays[currentDayOffset];
+            if (!isDone) {
+                userState.completedDays[currentDayOffset] = true;
+                userState.totalCompleted++;
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            } else {
+                delete userState.completedDays[currentDayOffset];
+                userState.totalCompleted--;
+            }
+            saveProgress();
             render();
         }
 
         function render() {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + currentDayOffset);
+            document.getElementById('dateDisplay').innerText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             document.getElementById('currentWeightDisplay').innerText = userState.currentWeight.toFixed(1);
-            const box = document.getElementById('mainMissionBox');
-            const btn = document.getElementById('completeBtn');
+
+            const task = getTaskForOffset(currentDayOffset);
+            const mealData = plan.meals[currentDayOffset % 7];
+            const isDone = userState.completedDays[currentDayOffset];
             
-            if (userState.completed) {
-                box.classList.add('completed-glow');
-                btn.className = "w-full py-4 rounded-2xl font-black uppercase text-sm bg-green-500 text-white flex justify-center items-center gap-2";
-                document.getElementById('completeBtnText').innerText = "Mission Complete";
-            } else {
-                box.classList.remove('completed-glow');
-                btn.className = "w-full py-4 rounded-2xl font-black uppercase text-sm bg-blue-100 text-blue-600 flex justify-center items-center gap-2";
-                document.getElementById('completeBtnText').innerText = "Log Completion";
-            }
+            // UI Updates for Main Mission Box
+            const box = document.getElementById('mainMissionBox');
+            if (currentDayOffset === 34 || currentDayOffset === 40) box.classList.add('special-event'); else box.classList.remove('special-event');
+            if (isDone) box.classList.add('completed-glow'); else box.classList.remove('completed-glow');
+
+            document.getElementById('missionContent').innerHTML = `
+                <div>
+                    <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Target</p>
+                    <p class="text-2xl font-black text-gray-800 leading-tight">${task}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="bg-green-50/50 p-4 rounded-2xl border border-green-100">
+                        <p class="text-[8px] font-black text-green-500 uppercase mb-1">Meal 1</p>
+                        <p class="text-xs font-bold text-gray-700">${mealData.m1}</p>
+                    </div>
+                    <div class="bg-green-50/50 p-4 rounded-2xl border border-green-100">
+                        <p class="text-[8px] font-black text-green-500 uppercase mb-1">Meal 2</p>
+                        <p class="text-xs font-bold text-gray-700">${mealData.m2}</p>
+                    </div>
+                </div>
+            `;
+
+            const btn = document.getElementById('completeBtn');
+            btn.className = isDone ? "w-full py-4 rounded-2xl font-black uppercase text-sm bg-green-500 text-white flex justify-center items-center gap-2" : "w-full py-4 rounded-2xl font-black uppercase text-sm bg-blue-100 text-blue-600 flex justify-center items-center gap-2";
+            document.getElementById('completeBtnText').innerText = isDone ? "Mission Accomplished" : "Complete Mission";
+
+            // Navigation Previews
+            document.getElementById('yesterdayTask').innerText = getTaskForOffset(currentDayOffset - 1);
+            document.getElementById('tomorrowTask').innerText = getTaskForOffset(currentDayOffset + 1);
+            document.getElementById('yesterdayStatusIcon').innerHTML = userState.completedDays[currentDayOffset - 1] ? '<i class="fa-solid fa-check text-green-500"></i>' : '';
+
+            // Stats
+            const progress = ((currentDayOffset + 1) / 56) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            const weekNum = Math.floor(currentDayOffset / 7) + 1;
+            document.getElementById('trainingBlockText').innerText = `Week ${9 - weekNum}: Phase ${weekNum < 4 ? 'Base' : 'Power'}`;
+
             renderWater();
+            renderBadges();
         }
 
         function renderWater() {
@@ -131,15 +244,24 @@
             container.innerHTML = '';
             for(let i=1; i<=5; i++) {
                 const active = i <= userState.waterBottles ? 'text-blue-500' : 'text-blue-100';
-                container.innerHTML += `<i class="fa-solid fa-droplet text-3xl cursor-pointer ${active}" onclick="userState.waterBottles=${i}; renderWater()"></i>`;
+                container.innerHTML += `<i class="fa-solid fa-droplet text-3xl cursor-pointer ${active}" onclick="userState.waterBottles=${i}; saveProgress(); renderWater()"></i>`;
             }
         }
 
+        function renderBadges() {
+            if(userState.currentWeight <= 110) document.getElementById('badge-weight').classList.add('border-blue-500', 'bg-blue-50');
+            if(userState.completedDays[34]) document.getElementById('badge-event').classList.remove('badge-locked');
+            if(userState.totalCompleted >= 10) document.getElementById('badge-morning').classList.remove('badge-locked');
+        }
+
+        function changeDay(delta) { currentDayOffset = Math.max(0, Math.min(55, currentDayOffset + delta)); render(); }
         function updateWeightModal() { document.getElementById('weightInput').value = userState.currentWeight; document.getElementById('weightModal').classList.remove('hidden'); }
         function closeModal() { document.getElementById('weightModal').classList.add('hidden'); }
-        function saveWeight() { userState.currentWeight = parseFloat(document.getElementById('weightInput').value); render(); closeModal(); }
+        function saveWeight() { userState.currentWeight = parseFloat(document.getElementById('weightInput').value); saveProgress(); render(); closeModal(); }
+        function saveProgress() { localStorage.setItem('tri_hero_state_final', JSON.stringify(userState)); }
+        function loadProgress() { const saved = localStorage.getItem('tri_hero_state_final'); if(saved) userState = JSON.parse(saved); }
 
-        window.onload = render;
+        window.onload = init;
     </script>
 </body>
 </html>
